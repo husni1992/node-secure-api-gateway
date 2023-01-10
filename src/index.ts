@@ -4,7 +4,10 @@ import rateLimit from "express-rate-limit";
 import responseTime from "response-time";
 import winston from "winston";
 import expressWinston from "express-winston";
+import cors from "cors";
+import helmet from "helmet";
 import dotenv from "dotenv";
+import { createProxyMiddleware } from "http-proxy-middleware";
 dotenv.config();
 
 const app = express();
@@ -20,6 +23,9 @@ const protect = (req: any, res: Response, next: NextFunction) => {
     next();
   }
 };
+
+app.use(cors());
+app.use(helmet());
 
 app.use(
   session({
@@ -51,6 +57,17 @@ app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 5,
+  })
+);
+
+app.use(
+  "/search",
+  createProxyMiddleware({
+    target: "http://api.duckduckgo.com/",
+    changeOrigin: true,
+    pathRewrite: {
+      [`^/search`]: "",
+    },
   })
 );
 
