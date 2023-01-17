@@ -47,8 +47,6 @@ app.use(
 
 app.use(rateLimit(config.requestRateConf));
 
-// app.use("/search", createProxyMiddleware(config.proxies["/search"]));
-
 Object.keys(config.proxies).forEach((path) => {
   const { isProtected, ...options } = config.proxies[path];
   const check = isProtected ? protect : alwaysAllow;

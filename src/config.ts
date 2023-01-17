@@ -19,6 +19,7 @@ interface Proxy {
   };
 }
 
+// Add the proxies below
 export const proxies: Proxy = {
   "/search": {
     isProtected: true,
