@@ -1,4 +1,4 @@
-import express, { Response, NextFunction } from "express";
+import express from "express";
 import session from "express-session";
 import rateLimit from "express-rate-limit";
 import responseTime from "response-time";
@@ -6,23 +6,15 @@ import winston from "winston";
 import expressWinston from "express-winston";
 import cors from "cors";
 import helmet from "helmet";
-import dotenv from "dotenv";
 import { createProxyMiddleware } from "http-proxy-middleware";
-dotenv.config();
+import { alwaysAllow, protect } from "./middlewares";
+import * as config from "./config";
 
 const app = express();
-const port = 3000;
+const port = config.SERVER_PORT;
 
-const secret = process.env.SESSION_SECRET as string;
+const secret = config.SESSION_SECRET;
 const store = new session.MemoryStore();
-const protect = (req: any, res: Response, next: NextFunction) => {
-  const { authenticated } = req.session;
-  if (!authenticated) {
-    res.sendStatus(401);
-  } else {
-    next();
-  }
-};
 
 app.use(cors());
 app.use(helmet());
@@ -53,23 +45,16 @@ app.use(
   })
 );
 
-app.use(
-  rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 5,
-  })
-);
+app.use(rateLimit(config.requestRateConf));
 
-app.use(
-  "/search",
-  createProxyMiddleware({
-    target: "http://api.duckduckgo.com/",
-    changeOrigin: true,
-    pathRewrite: {
-      [`^/search`]: "",
-    },
-  })
-);
+// app.use("/search", createProxyMiddleware(config.proxies["/search"]));
+
+Object.keys(config.proxies).forEach((path) => {
+  const { isProtected, ...options } = config.proxies[path];
+  const check = isProtected ? protect : alwaysAllow;
+
+  app.use(path, check, createProxyMiddleware(options));
+});
 
 app.get("/", (req, res) => {
   const { name = "user" } = req.query;
